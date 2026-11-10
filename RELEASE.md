@@ -1,6 +1,6 @@
-# Releasing n8n for Orca
+# Releasing n8n in Orca
 
-Release version: **0.1.1**, tag **v0.1.1**.
+Release version: **0.2.0**, tag **v0.2.0**.
 
 ## Repository content
 
@@ -54,7 +54,7 @@ git push origin main
 The versioned install reference is:
 
 ```text
-https://github.com/faisalmuhammad/orca-n8n#v0.1.1
+https://github.com/faisalmuhammad/orca-n8n#v0.2.0
 ```
 
 After publication, generate an Orca catalog entry from the published commit with `orca plugin release-entry . --json`. Catalog submission is separate from GitHub release automation. Published tags must remain unchanged.

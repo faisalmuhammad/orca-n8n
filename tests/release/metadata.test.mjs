@@ -17,7 +17,7 @@ test('release preparation reads only the manifest version and synchronizes insta
   try {
     mkdirSync(join(root, 'scripts'));
     for (const name of ['ci-release.mjs', 'prepare-release.mjs']) copyFileSync(join(ROOT, 'scripts', name), join(root, 'scripts', name));
-    write('orca-plugin.json', { name: 'n8n for Orca', version: '0.2.0' });
+    write('orca-plugin.json', { name: 'n8n in Orca', version: '0.2.0' });
     write('package.json', { version: '0.1.0' });
     write('package-lock.json', { version: '0.1.0', packages: { '': { version: '0.1.0' } } });
     writeFileSync(join(root, 'CHANGELOG.md'), changelog);
@@ -28,7 +28,7 @@ test('release preparation reads only the manifest version and synchronizes insta
     const readme = readFileSync(join(root, 'README.md'), 'utf8');
     assert.ok(readme.includes('Version **0.2.0**') && readme.includes('#v0.2.0') && readme.includes('Orca 1.4.248+'));
     assert.ok(readFileSync(join(root, 'RELEASE.md'), 'utf8').includes('Release version: **0.2.0**'));
-    write('orca-plugin.json', { name: 'n8n for Orca', version: '0.3.0' });
+    write('orca-plugin.json', { name: 'n8n in Orca', version: '0.3.0' });
     assert.throws(() => execFileSync(process.execPath, [join(root, 'scripts/prepare-release.mjs')], { stdio: 'pipe' }));
     assert.equal(JSON.parse(readFileSync(join(root, 'package.json'))).version, '0.2.0');
   } finally { rmSync(root, { recursive: true, force: true }); }
@@ -44,7 +44,7 @@ test('package and lockfile versions must agree with the manifest', () => {
   const root = mkdtempSync(join(tmpdir(), 'n8n-release-metadata-'));
   const write = (name, value) => writeFileSync(join(root, name), JSON.stringify(value));
   try {
-    write('orca-plugin.json', { name: 'n8n for Orca', version: '0.2.0' });
+    write('orca-plugin.json', { name: 'n8n in Orca', version: '0.2.0' });
     write('package.json', { version: '0.2.0' });
     write('package-lock.json', { version: '0.2.0', packages: { '': { version: '0.2.0' } } });
     writeFileSync(join(root, 'CHANGELOG.md'), changelog);

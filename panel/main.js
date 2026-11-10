@@ -1,5 +1,5 @@
 // orca-plugin.json
-var version = "0.1.1";
+var version = "0.2.0";
 
 // src/shared/types.ts
 var DEFAULT_URL = "http://localhost:5678/";
@@ -67,20 +67,20 @@ function theme() {
   document.documentElement.dataset.mode = dark ? "dark" : "light";
 }
 function icon(name) {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("aria-hidden", "true");
-  svg.classList.add("icon");
+  const svg2 = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg2.setAttribute("viewBox", "0 0 24 24");
+  svg2.setAttribute("aria-hidden", "true");
+  svg2.classList.add("icon");
   const paths = { settings: "M4 6h16 M4 12h16 M4 18h16 M8 4v4 M16 10v4 M10 16v4", arrow: "M5 12h14m-6-6 6 6-6 6", check: "m5 12 4 4L19 6", refresh: "M20 7v5h-5 M4 17v-5h5 M5 7a8 8 0 0 1 13-2l2 3 M4 16l2 3a8 8 0 0 0 13-2", chevron: "m9 5 7 7-7 7", tab: "M4 4h16v16H4zM4 8h16", right: "M4 4h16v16H4zM4 8h16M12 8v12", down: "M4 4h16v16H4zM4 8h16M4 14h16", server: "M4 4h16v6H4zM4 14h16v6H4zM7 7h1m-1 10h1", cloud: "M6 18a4 4 0 0 1-1-8 7 7 0 0 1 13-2 5 5 0 0 1 0 10Z", workflow: "M4 4h5v5H4Z M15 15h5v5h-5Z M9 6h8v9 M6 9v8h9", clock: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M12 7v5l3 2", close: "m6 6 12 12 M6 18 18 6" };
-  const path = document.createElementNS(svg.namespaceURI, "path");
+  const path = document.createElementNS(svg2.namespaceURI, "path");
   path.setAttribute("d", paths[name]);
   path.setAttribute("fill", "none");
   path.setAttribute("stroke", "currentColor");
   path.setAttribute("stroke-width", "1.6");
   path.setAttribute("stroke-linecap", "round");
   path.setAttribute("stroke-linejoin", "round");
-  svg.append(path);
-  return svg;
+  svg2.append(path);
+  return svg2;
 }
 
 // src/ui/dropdown.ts
@@ -176,15 +176,15 @@ function dropdown(label, value, items, content, extras) {
 
 // src/ui/empty-state.ts
 function illustration(state) {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 160 104");
-  svg.setAttribute("aria-hidden", "true");
-  svg.classList.add("empty-illustration");
+  const svg2 = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg2.setAttribute("viewBox", "0 0 160 104");
+  svg2.setAttribute("aria-hidden", "true");
+  svg2.classList.add("empty-illustration");
   function shape(tag, attributes, className) {
-    const node = document.createElementNS(svg.namespaceURI, tag);
+    const node = document.createElementNS(svg2.namespaceURI, tag);
     for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
     node.setAttribute("class", className);
-    svg.append(node);
+    svg2.append(node);
   }
   shape("rect", { x: "12", y: "8", width: "136", height: "88", rx: "24" }, "illustration-backdrop");
   shape("path", { d: "M46 52h20q8 0 8-8V34q0-8 8-8h26 M74 52v18q0 8 8 8h26", "stroke-dasharray": state === "connect" || state === "error" ? "4 4" : "none" }, "illustration-wire");
@@ -200,7 +200,7 @@ function illustration(state) {
     shape("circle", { cx: "120", cy: "78", r: "14" }, "illustration-badge");
     shape("path", { d: state === "error" ? "M120 71v8 M120 84h.01" : state === "connect" ? "M114 77v-4h12v4 M114 77h12v6h-12z M120 70v3" : "M120 72v12 M114 78h12" }, "illustration-mark");
   }
-  return svg;
+  return svg2;
 }
 function emptyState(state, title, description) {
   const container = el("div", void 0, "empty-state");
@@ -208,6 +208,147 @@ function emptyState(state, title, description) {
   if (state === "loading") container.setAttribute("role", "status");
   container.append(illustration(state), el("h3", title), el("p", description, "muted"));
   return container;
+}
+
+// src/ui/workflow-preview.ts
+function svg(tag, attributes = {}) {
+  const element = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, String(value));
+  return element;
+}
+function workflowPreview(preview, viewport, onViewportChange) {
+  const figure = el("figure", void 0, "workflow-preview");
+  const caption = el("figcaption", void 0, "workflow-preview-caption");
+  caption.append(el("span", "Preview"));
+  if (preview.partial) caption.append(el("span", "Partial", "muted"));
+  const width = 72, height = 40, padding = 32;
+  const xs = preview.nodes.map((node) => node.position[0]), ys = preview.nodes.map((node) => node.position[1]);
+  const left = Math.min(...xs) - padding, top = Math.min(...ys) - padding;
+  const boundsWidth = Math.max(...xs) + width + padding - left, boundsHeight = Math.max(...ys) + height + padding - top;
+  const viewWidth = Math.max(boundsWidth, 432), viewHeight = Math.max(boundsHeight, 180);
+  const centerX = left + boundsWidth / 2, centerY = top + boundsHeight / 2;
+  const graph = svg("svg", { preserveAspectRatio: "xMidYMid meet", role: "img", tabindex: 0, "aria-label": "Workflow preview: " + preview.nodes.length + " nodes, " + preview.edges.length + " connections", "aria-description": "Use plus or minus to zoom, arrow keys to pan, and 0 or Home to fit. Drag to pan when zoomed. Hold Ctrl or Command and scroll to zoom." });
+  const instructions = svg("title");
+  instructions.textContent = "Drag to pan \xB7 Ctrl/\u2318 + scroll to zoom \xB7 0 to fit";
+  graph.append(instructions);
+  let view = { zoom: 1, panX: 0, panY: 0, ...viewport };
+  const zoomOut = button("\u2212", () => zoomTo(view.zoom / 1.25), "workflow-preview-control");
+  zoomOut.setAttribute("aria-label", "Zoom out preview");
+  zoomOut.title = "Zoom out";
+  const zoomIn = button("+", () => zoomTo(view.zoom * 1.25), "workflow-preview-control");
+  zoomIn.setAttribute("aria-label", "Zoom in preview");
+  zoomIn.title = "Zoom in";
+  const fit = button("Fit", () => {
+    view = { zoom: 1, panX: 0, panY: 0 };
+    updateViewport();
+  }, "workflow-preview-control");
+  fit.setAttribute("aria-label", "Fit workflow preview");
+  fit.title = "Fit workflow";
+  const percentage = el("output", void 0, "workflow-preview-zoom");
+  percentage.setAttribute("aria-label", "Preview zoom");
+  const controls = el("div", void 0, "workflow-preview-controls");
+  controls.setAttribute("role", "group");
+  controls.setAttribute("aria-label", "Preview controls");
+  controls.append(zoomOut, percentage, zoomIn, fit);
+  caption.append(controls);
+  function updateViewport() {
+    view.zoom = Math.max(1, Math.min(8, view.zoom));
+    const limit = (1 - 1 / view.zoom) / 2;
+    view.panX = Math.max(-limit, Math.min(limit, view.panX));
+    view.panY = Math.max(-limit, Math.min(limit, view.panY));
+    graph.setAttribute("viewBox", [centerX + view.panX * viewWidth - viewWidth / view.zoom / 2, centerY + view.panY * viewHeight - viewHeight / view.zoom / 2, viewWidth / view.zoom, viewHeight / view.zoom].join(" "));
+    graph.dataset.zoomed = String(view.zoom > 1);
+    percentage.value = Math.round(view.zoom * 100) + "%";
+    zoomOut.disabled = view.zoom <= 1;
+    zoomIn.disabled = view.zoom >= 8;
+    onViewportChange?.({ ...view });
+  }
+  function zoomTo(zoom, anchor) {
+    const next = Math.max(1, Math.min(8, zoom));
+    if (anchor) {
+      const ratio = 1 - view.zoom / next;
+      view.panX += (anchor.x - centerX - view.panX * viewWidth) * ratio / viewWidth;
+      view.panY += (anchor.y - centerY - view.panY * viewHeight) * ratio / viewHeight;
+    }
+    view.zoom = next;
+    updateViewport();
+  }
+  graph.addEventListener("wheel", (event) => {
+    if (!event.ctrlKey && !event.metaKey || !event.deltaY) return;
+    event.preventDefault();
+    const transform = graph.getScreenCTM();
+    const anchor = transform ? new DOMPoint(event.clientX, event.clientY).matrixTransform(transform.inverse()) : void 0;
+    const delta = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? graph.clientHeight : 1);
+    zoomTo(view.zoom * Math.exp(-Math.max(-200, Math.min(200, delta)) * 5e-3), anchor);
+  }, { passive: false });
+  graph.addEventListener("keydown", (event) => {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key === "+" || event.key === "=") zoomTo(view.zoom * 1.25);
+    else if (event.key === "-" || event.key === "_") zoomTo(view.zoom / 1.25);
+    else if (event.key === "0" || event.key === "Home") {
+      view = { zoom: 1, panX: 0, panY: 0 };
+      updateViewport();
+    } else if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key) && view.zoom > 1) {
+      view.panX += (event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0) * 0.1 / view.zoom;
+      view.panY += (event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0) * 0.1 / view.zoom;
+      updateViewport();
+    } else return;
+    event.preventDefault();
+  });
+  let drag;
+  graph.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || !event.isPrimary || view.zoom <= 1) return;
+    const transform = graph.getScreenCTM();
+    if (!transform) return;
+    event.preventDefault();
+    graph.focus({ preventScroll: true });
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, view: { ...view }, inverse: transform.inverse() };
+    graph.setPointerCapture(event.pointerId);
+    graph.dataset.dragging = "true";
+  });
+  graph.addEventListener("pointermove", (event) => {
+    if (!drag || event.pointerId !== drag.id) return;
+    const start = new DOMPoint(drag.x, drag.y).matrixTransform(drag.inverse);
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(drag.inverse);
+    view = { zoom: drag.view.zoom, panX: drag.view.panX + (start.x - point.x) / viewWidth, panY: drag.view.panY + (start.y - point.y) / viewHeight };
+    updateViewport();
+  });
+  function endDrag(event) {
+    if (event.pointerId !== drag?.id) return;
+    drag = void 0;
+    delete graph.dataset.dragging;
+    if (graph.hasPointerCapture(event.pointerId)) graph.releasePointerCapture(event.pointerId);
+  }
+  graph.addEventListener("pointerup", endDrag);
+  graph.addEventListener("pointercancel", endDrag);
+  graph.addEventListener("lostpointercapture", endDrag);
+  updateViewport();
+  for (const edge of preview.edges) {
+    const source = preview.nodes[edge.source], target = preview.nodes[edge.target];
+    if (!source || !target) continue;
+    const sx = source.position[0] + width, sy = source.position[1] + height / 2 + Math.min(edge.output * 8, 12);
+    const tx = target.position[0], ty = target.position[1] + height / 2;
+    const bend = Math.max(Math.abs(tx - sx) / 2, 48);
+    const path = svg("path", { d: "M " + sx + " " + sy + " C " + (sx + bend) + " " + sy + ", " + (tx - bend) + " " + ty + ", " + tx + " " + ty, fill: "none", stroke: "currentColor", "stroke-width": 2, opacity: 0.5 });
+    if (edge.auxiliary) path.setAttribute("stroke-dasharray", "5 4");
+    graph.append(path, svg("path", { d: "M " + (tx - 6) + " " + (ty - 4) + " L " + tx + " " + ty + " L " + (tx - 6) + " " + (ty + 4), fill: "none", stroke: "currentColor", "stroke-width": 2, opacity: 0.5 }));
+  }
+  for (const node of preview.nodes) {
+    const group = svg("g", { transform: "translate(" + node.position.join(" ") + ")" });
+    const title = svg("title");
+    title.textContent = node.name + " \xB7 " + node.type;
+    const outline = svg("rect", { width, height, rx: 8, fill: "var(--color-surface)", stroke: "var(--color-primary)", "stroke-width": 2 });
+    const emblem = icon("workflow");
+    emblem.setAttribute("x", "24");
+    emblem.setAttribute("y", "8");
+    emblem.setAttribute("width", "24");
+    emblem.setAttribute("height", "24");
+    emblem.classList.remove("icon");
+    group.append(title, outline, emblem);
+    graph.append(group);
+  }
+  figure.append(caption, graph);
+  return figure;
 }
 
 // src/ui/workflow-card.ts
@@ -229,7 +370,12 @@ function workflowCard(item, open2, disabled, state) {
   const details = el("div", void 0, "workflow-details");
   details.id = "workflow-details-" + encodeURIComponent(item.id);
   let expanded = state.expanded;
+  let previewRendered = false;
   function updateExpansion() {
+    if (expanded && !previewRendered && item.preview?.nodes.length) {
+      details.prepend(workflowPreview(item.preview, state.previewViewport, state.setPreviewViewport));
+      previewRendered = true;
+    }
     row.dataset.expanded = String(expanded);
     details.hidden = !expanded;
     name.setAttribute("aria-expanded", String(expanded));
@@ -244,9 +390,32 @@ function workflowCard(item, open2, disabled, state) {
   name.setAttribute("aria-controls", details.id);
   const status = el("span", void 0, "workflow-state");
   status.dataset.state = item.state;
+  const statusLabel = item.state === "published" ? "Published" : item.state === "draft" ? "Draft" : item.state === "archived" ? "Archived" : "Unavailable";
+  status.setAttribute("role", "img");
+  status.setAttribute("aria-label", statusLabel);
+  status.tabIndex = 0;
   const dot = el("span", void 0, "status-dot");
   dot.setAttribute("aria-hidden", "true");
-  status.append(dot, el("span", item.state === "published" ? "Published" : item.state === "draft" ? "Draft" : item.state === "archived" ? "Archived" : "Unavailable"));
+  status.append(dot);
+  const statusTooltip = el("span", statusLabel, "workflow-status-tooltip");
+  statusTooltip.id = "workflow-status-" + encodeURIComponent(item.id);
+  statusTooltip.setAttribute("role", "tooltip");
+  status.setAttribute("aria-describedby", statusTooltip.id);
+  const statusIndicator = el("span", void 0, "workflow-status");
+  statusIndicator.append(status, statusTooltip);
+  status.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      statusIndicator.dataset.tooltipDismissed = "true";
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  });
+  statusIndicator.addEventListener("mouseleave", () => {
+    delete statusIndicator.dataset.tooltipDismissed;
+  });
+  status.addEventListener("blur", () => {
+    delete statusIndicator.dataset.tooltipDismissed;
+  });
   const emblem = el("span", void 0, "workflow-emblem");
   emblem.append(icon("workflow"));
   const copy = el("div", void 0, "workflow-copy");
@@ -259,7 +428,7 @@ function workflowCard(item, open2, disabled, state) {
   openButton.setAttribute("aria-label", "Open " + item.name);
   openButton.disabled = disabled;
   const actions = el("div", void 0, "workflow-row-actions");
-  actions.append(status, openButton);
+  actions.append(statusIndicator, openButton);
   const heading = el("div", void 0, "workflow-row-heading");
   heading.append(identity, actions);
   row.append(heading);
@@ -285,7 +454,7 @@ function workflowCard(item, open2, disabled, state) {
   row.append(details);
   updateExpansion();
   row.addEventListener("click", (event) => {
-    if (event.target instanceof Element && event.target.closest("button, a, input, select")) return;
+    if (event.target instanceof Element && event.target.closest("button, a, input, select, .workflow-preview, .workflow-status")) return;
     if (window.getSelection()?.toString()) return;
     toggle();
   });
@@ -380,6 +549,12 @@ var hasApiKey = false;
 var hasConnection = false;
 var workflowItems = [];
 var expandedWorkflows = /* @__PURE__ */ new Set();
+var previewViewports = /* @__PURE__ */ new Map();
+function pruneWorkflowViews() {
+  const loadedKeys = new Set(workflowItems.map((item) => JSON.stringify([prefs.baseUrl, item.id])));
+  for (const key of expandedWorkflows) if (!loadedKeys.has(key)) expandedWorkflows.delete(key);
+  for (const key of previewViewports.keys()) if (!loadedKeys.has(key)) previewViewports.delete(key);
+}
 var workflowCursor;
 var workflowError = "";
 var executionWarning = "";
@@ -858,6 +1033,7 @@ function settingsForm() {
         workflowCursor = page.nextCursor;
         executionWarning = page.executionWarning ?? "";
       }
+      pruneWorkflowViews();
       settingsVisible = false;
     });
   });
@@ -908,6 +1084,7 @@ function connectionRemoval() {
         clearOverview();
         workflowItems = [];
         expandedWorkflows.clear();
+        previewViewports.clear();
         workflowCursor = void 0;
         workflowError = "";
         executionWarning = "";
@@ -946,8 +1123,7 @@ async function loadWorkflows(more = false) {
     const page = await orca.plugin.request("n8n.workflows", more ? { cursor: workflowCursor } : void 0, { signal: browseAbort.signal });
     if (token !== browseGeneration) return;
     workflowItems = [...new Map((more ? [...workflowItems, ...page.data] : page.data).map((item) => [item.id, item])).values()].slice(0, 500);
-    const loadedKeys = new Set(workflowItems.map((item) => JSON.stringify([prefs.baseUrl, item.id])));
-    for (const key of expandedWorkflows) if (!loadedKeys.has(key)) expandedWorkflows.delete(key);
+    pruneWorkflowViews();
     workflowCursor = page.nextCursor;
     executionWarning = page.executionWarning ?? "";
     workflowsLoaded = true;
@@ -1010,10 +1186,15 @@ function workflowSection() {
     const items = newestWorkflows(workflowItems).filter((item) => item.name.toLowerCase().includes(workflowSearch.toLowerCase()) && (!workflowFilter || item.state === workflowFilter));
     for (const item of items) {
       const key = JSON.stringify([prefs.baseUrl, item.id]);
-      list.append(workflowCard(item, () => open(void 0, item.id), Boolean(busy), { expanded: expandedWorkflows.has(key), setExpanded: (expanded) => {
-        if (expanded) expandedWorkflows.add(key);
-        else expandedWorkflows.delete(key);
-      } }));
+      list.append(workflowCard(item, () => open(void 0, item.id), Boolean(busy), {
+        expanded: expandedWorkflows.has(key),
+        setExpanded: (expanded) => {
+          if (expanded) expandedWorkflows.add(key);
+          else expandedWorkflows.delete(key);
+        },
+        previewViewport: previewViewports.get(key),
+        setPreviewViewport: (viewport) => previewViewports.set(key, viewport)
+      }));
     }
     if (!items.length) {
       if (workflowsLoading) list.append(emptyState("loading", "Loading workflows\u2026", "Fetching your workflows from n8n."));

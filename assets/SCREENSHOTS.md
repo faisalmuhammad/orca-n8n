@@ -10,6 +10,8 @@ The cover and four screenshots are 1600 × 1000 PNGs. Workflow and insights view
 
 Screenshots use the compiled sidebar with the controlled Orca bridge in tests/browser/onboarding.spec.ts. Customer Onboarding and Daily Analytics, their workflow counts, publication states, and execution evidence are sample fixtures. The first card is expanded and the second collapsed. No live connection, API key, workflow parameters, or execution payload is used. Surrounding artwork is a presentation frame, not additional plugin UI or a custom workflow editor.
 
+The expanded card’s miniature graph uses sample node names, types, positions, and connections. The preview includes zoom and Fit controls and is read-only; editing opens the configured n8n instance. Publication states use dots, with text available in hover and focus tooltips.
+
 Browser tests generate controlled captures with npm run test:browser. Committed listing images were composed using Chromium and temporary official brand fonts. Fonts and temporary HTML are not distributed. Native Orca integration is validated separately; these captures do not claim a real Cloud account test.
 
 Brand source: https://guidelines.n8n.design/downloads/n8ndesign.md (v5). Logo files are in src/panel/assets and retain their original SVG content. See THIRD_PARTY_NOTICES.md for ownership and font handling.

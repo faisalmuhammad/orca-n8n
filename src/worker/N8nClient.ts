@@ -4,6 +4,7 @@ import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { instanceUrl, LauncherError } from './connection';
 import type { ConnectionKind, WorkflowPage, WorkflowSummary, InsightsSummary } from '../shared/types';
+import { normalizePreview } from './workflow-preview';
 export interface Connection { baseUrl: string; connectionKind: ConnectionKind }
 export type ApiTransport = (connection: Connection, key: string | undefined, path: string, query: Record<string, string>, signal: AbortSignal) => Promise<unknown>;
 export function publicAddress(ip: string): boolean {
@@ -67,7 +68,8 @@ export function normalizeWorkflows(value: unknown): WorkflowPage {
   const data = value.data.slice(0, 25).flatMap(item => {
     if (!record(item)) return []; const id = identifier(item.id); if (!id) return [];
     const state: WorkflowSummary['state'] = item.isArchived === true ? 'archived' : typeof item.activeVersionId === 'string' && item.activeVersionId ? 'published' : item.active === true ? 'published' : item.active === false || 'activeVersionId' in item ? 'draft' : 'unknown';
-    return [{ id, name: typeof item.name === 'string' ? item.name.slice(0, 250) : 'Untitled workflow', state, ...(Array.isArray(item.nodes) ? { nodeCount: item.nodes.length } : {}), ...(typeof item.updatedAt === 'string' ? { updatedAt: item.updatedAt } : {}) }];
+    const preview = normalizePreview(item);
+    return [{ id, name: typeof item.name === 'string' ? item.name.slice(0, 250) : 'Untitled workflow', state, ...(Array.isArray(item.nodes) ? { nodeCount: item.nodes.length } : {}), ...(preview ? { preview } : {}), ...(typeof item.updatedAt === 'string' ? { updatedAt: item.updatedAt } : {}) }];
   });
   const nextCursor = typeof value.nextCursor === 'string' && value.nextCursor.length <= 4096 ? value.nextCursor : undefined;
   return { data, ...(nextCursor ? { nextCursor } : {}) };

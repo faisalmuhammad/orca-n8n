@@ -4,7 +4,7 @@ import { publishRelease } from '../../.github/scripts/publish-release.mjs';
 import { releaseInfo } from '../../scripts/ci-release.mjs';
 
 const commit = 'a'.repeat(40);
-const info = { ...releaseInfo('0.2.0', '## 0.2.0\n- New workflows.\n\n## 0.1.0\n- Initial release.'), name: 'n8n for Orca' };
+const info = { ...releaseInfo('0.2.0', '## 0.2.0\n- New workflows.\n\n## 0.1.0\n- Initial release.'), name: 'n8n in Orca' };
 function failure(message, status = 1) { return Object.assign(new Error(message), { stderr: message, status }); }
 function scenario({ releaseExists = false, tagExists = false, target = commit, viewError, createError } = {}) {
   const calls = [];
@@ -35,7 +35,7 @@ test('main creates the manifest tag on the checked commit before creating the re
   assert.deepEqual(publishRelease(info, s.context), { tag: 'v0.2.0', state: 'published' });
   assert.deepEqual(s.mutations(), [
     ['gh', ['api', '--method', 'POST', 'repos/owner/orca-n8n/git/refs', '-f', 'ref=refs/tags/v0.2.0', '-f', 'sha=' + commit]],
-    ['gh', ['release', 'create', 'v0.2.0', '--repo', 'owner/orca-n8n', '--verify-tag', '--title', 'n8n for Orca 0.2.0', '--notes-file', '/tmp/notes.md']]
+    ['gh', ['release', 'create', 'v0.2.0', '--repo', 'owner/orca-n8n', '--verify-tag', '--title', 'n8n in Orca 0.2.0', '--notes-file', '/tmp/notes.md']]
   ]);
 });
 

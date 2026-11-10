@@ -18,6 +18,8 @@ The documented GET /api/v1/insights/summary returns total, failed, failureRate, 
 
 State adapters accept activeVersionId, legacy active flags, and isArchived. Missing state yields Unavailable. Recent run is bounded to the latest retained execution page, not a guaranteed last run per workflow, and appears inside an expanded card. Automatic refresh defaults to 30 seconds and is configurable or disabled. It reloads the first page and pauses while hidden, typing, or configuring settings.
 
+Workflow previews require node structure in the workflow-list response. The worker projects at most 100 nodes and 200 connections, excluding parameters, credentials, pinned data, and execution payloads. Unsupported types use generic icons; incomplete previews are labeled Partial. Missing structure leaves the workflow metadata available. Zoom and pan are local viewing controls and do not edit workflows or make extra API requests.
+
 Workflow actions resolve the current local workspace at click time and list tabs in that exact destination. Tabs match by instance, base path, and workflow ID; reopening a workflow focuses its matching tab with tab switch --page ... --focus, preserving query parameters and execution views. A different workflow opens in a separate tab/split. New Workflow always creates a fresh editor, and API settings reuse only their own route. Open n8n can focus an existing instance tab without navigating it. CLI launches are not automatically retried.
 
 API keys require Orca OS-keyring protection; unavailable secure storage fails closed. Local API access was verified for workflow and execution metadata. Cloud transport and metadata are tested with controlled fixtures; a real Cloud account has not been used for live validation.

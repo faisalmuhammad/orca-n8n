@@ -1,4 +1,4 @@
-name: Check and release n8n for Orca
+name: Check and release n8n in Orca
 
 on:
   pull_request:

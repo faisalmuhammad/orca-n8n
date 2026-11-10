@@ -8,7 +8,7 @@ Open your local or Cloud n8n instance inside [Orca](https://onorca.dev). Browse 
 
 ![n8n in Orca, with a single-line pink-and-white headline and a tilted pink n8n tile](assets/cover.png)
 
-Version **0.1.1**. The release process is documented in [RELEASE.md](RELEASE.md).
+Version **0.2.0**. The release process is documented in [RELEASE.md](RELEASE.md).
 
 ## Install
 
@@ -20,10 +20,10 @@ Install a versioned release:
 2. Choose **Add plugin → From a Git URL…** and enter:
 
    ```text
-   https://github.com/faisalmuhammad/orca-n8n#v0.1.1
+   https://github.com/faisalmuhammad/orca-n8n#v0.2.0
    ```
 
-   Keep `#v0.1.1` at the end to install the release tag.
+   Keep `#v0.2.0` at the end to install the release tag.
 3. Review and approve the **trusted worker**, **plugin-owned storage and secrets**, and **workspace discovery and navigation** access.
 4. Open **n8n** from the lightning icon in the sidebar and follow the setup guide.
 
@@ -58,7 +58,9 @@ Local addresses must use loopback hosts such as `localhost` or `127.0.0.1`. Clou
 
 Choose **Open** on a workflow to view it in n8n. Orca resolves the current workspace for every action. Reopening the same workflow focuses its existing tab; a different workflow opens in a separate tab or split. No workspace selection is saved. Switching workspaces automatically changes where the next workflow opens.
 
-Click a workflow card or its name to expand recent-run details. Cards start collapsed and keep their expansion state during filtering and refresh. **Enter** and **Space** also toggle the focused workflow name. The **Open** button works independently.
+Click a workflow card or its name to expand a read-only workflow preview and recent-run details. Use **− / +** to zoom, drag to pan while zoomed, and **Fit** to show the whole graph. The view stays in place during collapse, filtering, and refresh. **Enter** and **Space** toggle the focused workflow name. The **Open** button works independently.
+
+Hover or focus the status dot beside **Open** to see Published, Draft, Archived, or Unavailable. **Escape** dismisses the tooltip.
 
 Use **New Workflow** to open a fresh workflow editor without replacing another workflow tab. The same action is available as **New n8n workflow** in Orca’s command palette. The sidebar refreshes immediately after a successful launch when API access is configured; the new workflow appears after it is saved in n8n and the list refreshes.
 
@@ -71,6 +73,8 @@ The settings button controls the address, placement, API key, and automatic refr
 | Guided setup | Connect local n8n or n8n Cloud and choose a tab or split; the current workspace is automatic |
 | Workflow discovery | Browse loaded workflows by most recent update, with names, publication state, and node counts |
 | Search and filters | Search loaded pages and filter Published, Draft, or Archived workflows |
+| Workflow preview | Expand a read-only graph when node structure is available; zoom up to 8× and pan |
+| Status dots | Compact publication indicators with hover and keyboard-focus tooltips |
 | Recent-run status | Expand a card to see available execution status and timing |
 | Execution overview | Expand five compact metrics reported by n8n for the last seven days |
 | Open and create | Open workflows or start a new one in your n8n instance |
@@ -92,7 +96,7 @@ Refresh pauses while the panel is hidden, settings are open, or an input has foc
 
 The worker runs with your user account’s authority. API requests go through the worker; keys are bound to the configured instance and are never returned to the panel or stored in ordinary preferences. Saving a key requires secure storage. Browser sign-in stays in Orca’s browser session.
 
-The panel receives workflow metadata and recent-run status, without node parameters, pinned data, or execution payloads. Metadata stays in memory and is cleared when changing connections. Authenticated redirects are refused, and requests have destination, size, and time limits.
+The panel receives workflow metadata, preview topology, and recent-run status, without node parameters, credentials, pinned data, or execution payloads. Metadata stays in memory and is cleared when changing connections. Authenticated redirects are refused, and requests have destination, size, and time limits.
 
 The overview shows production executions, failed executions, failure rate, time saved, and average run time from the public insights API. It loads on expansion and refreshes with the list while open. Availability depends on the n8n version, plan, and insights:read permission; unavailable statistics never appear as zeros.
 

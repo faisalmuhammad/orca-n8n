@@ -7,6 +7,7 @@ import { el, button, field, select, theme, icon } from '../ui/dom';
 import { dropdown, closeDropdown } from '../ui/dropdown';
 import { emptyState } from '../ui/empty-state';
 import { workflowCard } from '../ui/workflow-card';
+import type { PreviewViewport } from '../ui/workflow-preview';
 import { insightsCard } from '../ui/insights';
 
 theme(); orca.on('theme', theme);
@@ -27,6 +28,12 @@ let hasApiKey = false;
 let hasConnection = false;
 let workflowItems: WorkflowSummary[] = [];
 const expandedWorkflows = new Set<string>();
+const previewViewports = new Map<string, PreviewViewport>();
+function pruneWorkflowViews() {
+  const loadedKeys = new Set(workflowItems.map(item => JSON.stringify([prefs.baseUrl, item.id])));
+  for (const key of expandedWorkflows) if (!loadedKeys.has(key)) expandedWorkflows.delete(key);
+  for (const key of previewViewports.keys()) if (!loadedKeys.has(key)) previewViewports.delete(key);
+}
 let workflowCursor: string | undefined;
 let workflowError = '';
 let executionWarning = '';
@@ -257,6 +264,7 @@ function settingsForm() {
         const page = await orca.plugin.request('n8n.workflows', undefined, { signal: signal.signal });
         workflowItems = page.data; workflowsLoaded = true; workflowCursor = page.nextCursor; executionWarning = page.executionWarning ?? '';
       }
+      pruneWorkflowViews();
       settingsVisible = false;
     });
   });
@@ -280,7 +288,7 @@ function connectionRemoval() {
         browseAbort.abort(); ++browseGeneration; workflowsLoading = false; window.clearTimeout(refreshTimer);
         prefs = await orca.plugin.request('n8n.delete-connection', saved, { signal: signal.signal });
         hasConnection = false; hasApiKey = false; connected = false; opened = false; settingsVisible = false; editing = false; setupSnapshot = undefined; clearOverview();
-        workflowItems = []; expandedWorkflows.clear(); workflowCursor = undefined; workflowError = ''; executionWarning = ''; workflowsLoaded = false; workflowSearch = ''; workflowFilter = '';
+        workflowItems = []; expandedWorkflows.clear(); previewViewports.clear(); workflowCursor = undefined; workflowError = ''; executionWarning = ''; workflowsLoaded = false; workflowSearch = ''; workflowFilter = '';
         draftKind = prefs.connectionKind ?? 'local'; draftUrl = prefs.baseUrl.replace(/\/$/, ''); step = 1;
       });
     }, 'action delete-confirm');
@@ -297,8 +305,7 @@ async function loadWorkflows(more = false) {
     const page = await orca.plugin.request('n8n.workflows', more ? { cursor: workflowCursor } : undefined, { signal: browseAbort.signal });
     if (token !== browseGeneration) return;
     workflowItems = [...new Map((more ? [...workflowItems, ...page.data] : page.data).map(item => [item.id, item])).values()].slice(0, 500);
-    const loadedKeys = new Set(workflowItems.map(item => JSON.stringify([prefs.baseUrl, item.id])));
-    for (const key of expandedWorkflows) if (!loadedKeys.has(key)) expandedWorkflows.delete(key);
+    pruneWorkflowViews();
     workflowCursor = page.nextCursor; executionWarning = page.executionWarning ?? '';
     workflowsLoaded = true;
   } catch (value) { if (token === browseGeneration) workflowError = value instanceof Error ? value.message : 'Could not load workflows. Refresh to try again.'; }
@@ -335,7 +342,10 @@ function workflowSection() {
     const items = newestWorkflows(workflowItems).filter(item => item.name.toLowerCase().includes(workflowSearch.toLowerCase()) && (!workflowFilter || item.state === workflowFilter));
     for (const item of items) {
       const key = JSON.stringify([prefs.baseUrl, item.id]);
-      list.append(workflowCard(item, () => open(undefined, item.id), Boolean(busy), { expanded: expandedWorkflows.has(key), setExpanded: expanded => { if (expanded) expandedWorkflows.add(key); else expandedWorkflows.delete(key); } }));
+      list.append(workflowCard(item, () => open(undefined, item.id), Boolean(busy), {
+        expanded: expandedWorkflows.has(key), setExpanded: expanded => { if (expanded) expandedWorkflows.add(key); else expandedWorkflows.delete(key); },
+        previewViewport: previewViewports.get(key), setPreviewViewport: viewport => previewViewports.set(key, viewport)
+      }));
     }
     if (!items.length) {
       if (workflowsLoading) list.append(emptyState('loading', 'Loading workflows…', 'Fetching your workflows from n8n.'));

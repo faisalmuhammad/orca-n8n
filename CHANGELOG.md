@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Use “n8n in Orca” consistently as the plugin name.
+- Replace workflow publication badges with compact status dots. Tooltips appear on hover or keyboard focus, support Escape dismissal, and retain accessible status labels.
+- Add a compact read-only workflow preview inside expanded cards, using stored node positions and connections. Parameters, credentials, and execution payloads remain excluded.
+- Add preview zoom, drag-to-pan, keyboard navigation, and Fit controls, preserving the view across card collapse, filtering, and list refresh.
+
 ## 0.1.1
 
 - Fix workflow navigation: different workflows open in separate tabs or splits, while reopening the same workflow focuses its existing tab without navigating away from unsaved changes.
@@ -9,7 +16,7 @@
 
 ## 0.1.0
 
-Initial release of n8n for Orca.
+Initial release of n8n in Orca.
 
 - Open your n8n instance in an Orca browser tab or split in the current workspace automatically. Reuse and focus an existing instance tab; no workspace selection is required.
 - Guided local and n8n Cloud setup, optional API access, and safe connection removal.

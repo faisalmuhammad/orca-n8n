@@ -4,8 +4,28 @@ import { apiTransport, publicAddress, normalizeWorkflows, addRecentRuns, normali
 import { newestWorkflows } from '../../src/shared/workflow-order';
 import { activateWithServices } from '../../src/worker/main';
 import { DEFAULT_URL } from '../../src/shared/types';
+import { normalizePreview } from '../../src/worker/workflow-preview';
 const capabilities = ['storage:own', 'workspace:read', 'workspace:write', 'secrets:own'];
 const cli = async () => ({ worktrees: [], truncated: false });
+test('workflow previews preserve positions, branch outputs, and auxiliary connections without private node data', () => {
+  const page = normalizeWorkflows({ data: [{ id: 'preview', name: 'Preview', nodes: [
+    { name: 'Trigger', type: 'n8n-nodes-base.webhook', position: [-200, 40], parameters: { token: 'private-parameter' }, credentials: { account: 'private-credential' } },
+    { name: 'If', type: 'custom.logic', position: [0, 40], parameters: { code: 'private-code' } },
+    { name: 'Yes', type: 'custom.unknown', position: [200, 0] }, { name: 'No', position: [200, 100] }
+  ], connections: { Trigger: { main: [[{ node: 'If' }]] }, If: { main: [[{ node: 'Yes' }], [{ node: 'No' }]], ai_tool: [[{ node: 'Yes' }]] } }, pinData: { private: 'private-pinned' } }] });
+  const preview = page.data[0].preview!;
+  assert.equal(preview.nodes.length, 4); assert.deepEqual(preview.nodes[0].position, [-200, 40]);
+  assert.deepEqual(preview.edges, [{ source: 0, target: 1, output: 0, auxiliary: false }, { source: 1, target: 2, output: 0, auxiliary: false }, { source: 1, target: 3, output: 1, auxiliary: false }, { source: 1, target: 2, output: 0, auxiliary: true }]);
+  assert.equal(preview.partial, false); assert.equal(preview.nodes[3].type, 'Unknown node');
+  assert.ok(!JSON.stringify(page).includes('private-'));
+});
+test('preview projection handles missing graphs, malformed positions, ambiguous names, and bounded large workflows', () => {
+  assert.equal(normalizePreview({}), undefined); assert.equal(normalizePreview({ nodes: [] }), undefined);
+  const malformed = normalizePreview({ nodes: [{ name: 'Duplicate', position: [Infinity, 0] }, { name: 'Duplicate', position: [0, 0] }, { name: 'Target', position: [100, 0] }, null], connections: { Duplicate: { main: [[{ node: 'Target' }]] }, Target: { main: [[{ node: 'Missing' }]] } } })!;
+  assert.equal(malformed.partial, true); assert.equal(malformed.edges.length, 0); assert.ok(malformed.nodes.flatMap(node => node.position).every(Number.isFinite));
+  const large = normalizePreview({ nodes: Array.from({ length: 500 }, (_, i) => ({ name: 'Node ' + i, position: [i * 100, 0] })), connections: { 'Node 0': { main: [Array.from({ length: 500 }, () => ({ node: 'Node 1' }))] } } })!;
+  assert.equal(large.nodes.length, 100); assert.equal(large.edges.length, 200); assert.equal(large.partial, true);
+});
 test('workflow order uses actual update times across pages, keeping missing dates last and equal dates stable', () => {
   const items = normalizeWorkflows({ data: [
     { id: 'missing' }, { id: 'old', updatedAt: '2026-11-09T20:00:00Z' }, { id: 'invalid', updatedAt: 'invalid' },

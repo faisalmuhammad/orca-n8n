@@ -3,6 +3,12 @@ async function frame(page: Page, options: { completed?: boolean; missingWorkspac
   await page.addInitScript(options => {
     const callbacks: (() => void)[] = [];
     const calls: { name: string; input?: any }[] = [];
+    const preview = { nodes: [
+      { name: 'Webhook', type: 'Webhook', position: [0, 80] }, { name: 'Validate customer', type: 'Code', position: [160, 80] },
+      { name: 'Check account', type: 'If', position: [320, 80] }, { name: 'Welcome email', type: 'Email', position: [480, 0] },
+      { name: 'Update CRM', type: 'Action', position: [640, 0] }, { name: 'Log result', type: 'Code', position: [480, 160] },
+      { name: 'Notify team', type: 'Action', position: [640, 160] }
+    ], edges: [{ source: 0, target: 1, output: 0, auxiliary: false }, { source: 1, target: 2, output: 0, auxiliary: false }, { source: 2, target: 3, output: 0, auxiliary: false }, { source: 2, target: 5, output: 1, auxiliary: false }, { source: 3, target: 4, output: 0, auxiliary: false }, { source: 5, target: 6, output: 0, auxiliary: false }], partial: false };
     const fixture = { calls, releaseWorkflows: () => {}, failDelete: false, failHealth: false, failOpen: false, failWorkflows: false, emptyWorkflows: false, failInsights: false, workflowOverride: undefined as any, insights: { total: 12, failed: 3, failureRate: .25, timeSavedMinutes: 90, averageRunTimeMs: 1500, startDate: '2026-11-03T10:00:00Z', endDate: '2026-11-10T10:00:00Z' }, failState: !!options.failState, theme: (dark: boolean, background?: string) => { document.documentElement.style.setProperty('--orca-background', background ?? (dark ? '#191919' : '#FAFAFA')); document.documentElement.style.setProperty('--orca-foreground', dark ? '#FAFAFA' : '#191919'); document.documentElement.style.setProperty('--orca-muted-foreground', dark ? '#BFBFBF' : '#676767'); callbacks.forEach(fn => fn()); } };
     let preferences = { baseUrl: 'http://localhost:5678/', connectionKind: 'local', workspace: 'folder:current', placement: 'tab', onboardingCompleted: !!options.completed, refreshIntervalSeconds: 30 };
     let hasApiKey = !!options.hasKey;
@@ -22,7 +28,7 @@ async function frame(page: Page, options: { completed?: boolean; missingWorkspac
       if (name === 'n8n.workflows' && fixture.workflowOverride) return fixture.workflowOverride;
       if (name === 'n8n.insights') { if (fixture.failInsights) throw new Error('HTTP 403: Missing insights:read'); return fixture.insights; }
       if (name === 'n8n.workflows' && options.manyWorkflows) return { data: Array.from({ length: 25 }, (_, i) => ({ id: 'many-' + i, name: 'Workflow ' + i, state: i % 2 ? 'draft' : 'published', nodeCount: i + 1, updatedAt: '2026-11-10T09:00:00Z' })) };
-      if (name === 'n8n.workflows') return { data: [{ id: input?.cursor ? 'wf2' : 'wf1', name: input?.cursor ? 'Daily Analytics' : 'Customer Onboarding', state: input?.cursor ? 'draft' : 'published', nodeCount: input?.cursor ? 0 : 7, updatedAt: '2026-11-10T09:00:00Z', recentRun: { id: 'ex1', status: 'error', startedAt: '2026-11-10T10:42:00Z' } }], nextCursor: input?.cursor ? undefined : 'next' };
+      if (name === 'n8n.workflows') return { data: [{ id: input?.cursor ? 'wf2' : 'wf1', name: input?.cursor ? 'Daily Analytics' : 'Customer Onboarding', state: input?.cursor ? 'draft' : 'published', nodeCount: input?.cursor ? 0 : 7, ...(input?.cursor ? {} : { preview }), updatedAt: '2026-11-10T09:00:00Z', recentRun: { id: 'ex1', status: 'error', startedAt: '2026-11-10T10:42:00Z' } }], nextCursor: input?.cursor ? undefined : 'next' };
       if (name === 'n8n.connect') { if (fixture.failHealth) throw new Error('Could not reach n8n. Start the instance and check the port.'); hasConnection = true; localStorage.removeItem('launcher-fixture-deleted'); preferences = { ...preferences, baseUrl: input.baseUrl.replace(/\/$/, '') + '/', connectionKind: input.connectionKind }; return { preferences, checkedAt: new Date().toISOString() }; }
       if (name === 'n8n.preview-connection') { if (fixture.failHealth) throw new Error('Could not reach n8n. Start the instance and check the port.'); return { baseUrl: input.baseUrl.replace(/\/$/, '') + '/', connectionKind: input.connectionKind, checkedAt: new Date().toISOString() }; }
       if (name === 'n8n.open') { if (options.missingWorkspaces) throw new Error('Open a local Orca workspace, then try opening n8n again.'); await new Promise(resolve => setTimeout(resolve, 50)); if (fixture.failOpen) throw new Error('Orca could not open this workspace.'); if (input.preview) return { browserPageId: 'page-id', preferences: { ...preferences, baseUrl: input.baseUrl, connectionKind: input.connectionKind, workspace: input.workspace, placement: input.placement } }; preferences = { ...preferences, workspace: input.workspace, placement: input.placement }; }
@@ -36,6 +42,117 @@ async function frame(page: Page, options: { completed?: boolean; missingWorkspac
 }
 async function connect(page: Page) { await page.getByRole('button', { name: 'Check connection', exact: true }).click(); await expect(page.getByText('n8n is ready on port 5678.')).toBeVisible(); }
 async function launchStep(page: Page) { await connect(page); await page.getByRole('button', { name: 'Continue', exact: true }).click(); await page.getByRole('button', { name: 'Right split', exact: true }).click(); await page.getByRole('button', { name: 'Continue to n8n' }).click(); }
+test('expanded cards show a safe, responsive preview without extra API requests or intercepting Open', async ({ page }) => {
+  await frame(page, { completed: true, hasKey: true });
+  await page.evaluate(() => { (window as any).fixture.workflowOverride = { data: [{ id: 'preview', name: 'Preview workflow', state: 'draft', nodeCount: 3, preview: { nodes: [
+    { name: '<img src=x onerror=alert(1)>', type: 'Webhook', position: [0, 0] }, { name: 'Branch', type: 'If', position: [160, 0] }, { name: 'Action', type: 'Unknown', position: [320, 80] }
+  ], edges: [{ source: 0, target: 1, output: 0, auxiliary: false }, { source: 1, target: 2, output: 1, auxiliary: true }], partial: false } }] }; });
+  await page.getByRole('button', { name: 'Refresh workflows', exact: true }).click();
+  const card = page.getByRole('article', { name: 'Preview workflow', exact: true });
+  await expect(card.locator('.workflow-preview')).toHaveCount(0);
+  const requests = await page.evaluate(() => (window as any).fixture.calls.filter((call: any) => call.name === 'n8n.workflows').length);
+  await card.getByRole('button', { name: 'Preview workflow', exact: true }).click();
+  await expect(card.getByRole('img', { name: 'Workflow preview: 3 nodes, 2 connections' })).toBeVisible();
+  await expect(card.locator('.workflow-preview img, .workflow-preview script')).toHaveCount(0);
+  await expect(card.locator('.workflow-preview rect')).toHaveCount(3);
+  for (const dark of [false, true]) {
+    await page.evaluate(dark => (window as any).fixture.theme(dark), dark);
+    await page.setViewportSize({ width: 260, height: 900 });
+    await expect(card.getByRole('img', { name: 'Workflow preview: 3 nodes, 2 connections' })).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
+  expect(await page.evaluate(() => (window as any).fixture.calls.filter((call: any) => call.name === 'n8n.workflows').length)).toBe(requests);
+  await card.getByRole('button', { name: 'Open Preview workflow', exact: true }).click();
+  await expect(card.getByRole('img', { name: 'Workflow preview: 3 nodes, 2 connections' })).toBeVisible();
+  await card.getByRole('button', { name: 'Preview workflow', exact: true }).click();
+  await expect(card.getByRole('img', { name: 'Workflow preview: 3 nodes, 2 connections' })).toBeHidden();
+  await card.getByRole('button', { name: 'Preview workflow', exact: true }).click();
+  await expect(card.locator('.workflow-preview')).toHaveCount(1);
+  await page.screenshot({ path: '.orca/shots/preview-dark.png' });
+});
+test('preview zoom, pan, fit and keyboard controls preserve the view through collapse, filtering and refresh', async ({ page }) => {
+  await page.clock.install();
+  await frame(page, { completed: true, hasKey: true });
+  const card = page.getByRole('article', { name: 'Customer Onboarding', exact: true });
+  const toggle = card.getByRole('button', { name: 'Customer Onboarding', exact: true });
+  await toggle.click();
+  const graph = card.getByRole('img', { name: 'Workflow preview: 7 nodes, 6 connections' });
+  const zoom = card.locator('output');
+  const fitBounds = (await graph.getAttribute('viewBox'))!;
+  const fitWidth = Number(fitBounds.split(' ')[2]);
+  const count = () => page.evaluate(() => (window as any).fixture.calls.filter((call: any) => call.name === 'n8n.workflows').length);
+  const requests = await count();
+  await expect(card.getByRole('button', { name: 'Zoom out preview' })).toBeDisabled();
+  await card.getByRole('button', { name: 'Zoom in preview' }).click();
+  await expect(zoom).toHaveText('125%');
+  expect(Number((await graph.getAttribute('viewBox'))!.split(' ')[2])).toBeLessThan(fitWidth);
+  await card.getByRole('button', { name: 'Zoom out preview' }).click();
+  await expect(graph).toHaveAttribute('viewBox', fitBounds);
+  await graph.focus();
+  for (let i = 0; i < 12; i++) await graph.press('+');
+  await expect(zoom).toHaveText('800%');
+  await expect(card.getByRole('button', { name: 'Zoom in preview' })).toBeDisabled();
+  await graph.press('+'); await expect(zoom).toHaveText('800%');
+  await graph.press('0'); await expect(graph).toHaveAttribute('viewBox', fitBounds);
+  await graph.press('+'); await graph.press('+');
+  const centered = (await graph.getAttribute('viewBox'))!;
+  const box = (await graph.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 - 20, box.y + box.height / 2 - 8, { steps: 4 }); await page.mouse.up();
+  const panned = (await graph.getAttribute('viewBox'))!;
+  expect(panned).not.toBe(centered);
+  expect(panned.split(' ').slice(2)).toEqual(centered.split(' ').slice(2));
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(graph).not.toHaveAttribute('data-dragging', 'true');
+  await graph.click(); await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await graph.press('ArrowLeft');
+  expect(await graph.getAttribute('viewBox')).not.toBe(panned);
+  const saved = (await graph.getAttribute('viewBox'))!;
+  expect(await graph.evaluate(node => { const event = new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true }); node.dispatchEvent(event); return event.defaultPrevented; })).toBe(false);
+  await expect(graph).toHaveAttribute('viewBox', saved);
+  expect(await count()).toBe(requests);
+  expect(await page.evaluate(() => (window as any).fixture.calls.filter((call: any) => call.name === 'n8n.open').length)).toBe(0);
+  await toggle.click(); await toggle.click(); await expect(graph).toHaveAttribute('viewBox', saved);
+  const search = page.getByRole('searchbox', { name: 'Search workflows' });
+  await search.fill('nothing matches'); await expect(card).toHaveCount(0);
+  await search.fill(''); await expect(graph).toHaveAttribute('viewBox', saved);
+  await page.getByRole('button', { name: 'Refresh workflows', exact: true }).click();
+  await expect(graph).toHaveAttribute('viewBox', saved);
+  await graph.focus(); await page.clock.fastForward('00:31');
+  await expect.poll(count).toBe(requests + 2);
+  await expect(graph).toHaveAttribute('viewBox', saved);
+  const bounds = (await graph.boundingBox())!;
+  expect(await graph.evaluate((node, point) => { const event = new WheelEvent('wheel', { deltaY: -100, ctrlKey: true, clientX: point.x, clientY: point.y, bubbles: true, cancelable: true }); node.dispatchEvent(event); return event.defaultPrevented; }, { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 })).toBe(true);
+  expect(Number((await graph.getAttribute('viewBox'))!.split(' ')[2])).toBeLessThan(Number(saved.split(' ')[2]));
+  await card.getByRole('button', { name: 'Fit workflow preview' }).click();
+  await expect(graph).toHaveAttribute('viewBox', fitBounds); await expect(zoom).toHaveText('100%');
+  await graph.focus(); await graph.press('-'); await expect(graph).toHaveAttribute('viewBox', fitBounds);
+  await graph.press('+'); await graph.press('Home'); await expect(graph).toHaveAttribute('viewBox', fitBounds);
+});
+test('preview viewports are independent per workflow and reset after a workflow disappears', async ({ page }) => {
+  await frame(page, { completed: true, hasKey: true });
+  const first = page.getByRole('article', { name: 'Customer Onboarding', exact: true });
+  await first.getByRole('button', { name: 'Customer Onboarding', exact: true }).click();
+  await first.getByRole('button', { name: 'Zoom in preview' }).click();
+  await page.evaluate(() => { const fixture = (window as any).fixture; const preview = { nodes: [{ name: 'Start', type: 'Webhook', position: [0, 0] }], edges: [], partial: false }; fixture.workflowOverride = { data: [
+    { id: 'wf1', name: 'Customer Onboarding', state: 'published', preview }, { id: 'wf-other', name: 'Other workflow', state: 'draft', preview }
+  ] }; });
+  await page.getByRole('button', { name: 'Refresh workflows', exact: true }).click();
+  await expect(first.locator('output')).toHaveText('125%');
+  const second = page.getByRole('article', { name: 'Other workflow', exact: true });
+  await second.getByRole('button', { name: 'Other workflow', exact: true }).click();
+  await expect(second.locator('output')).toHaveText('100%');
+  await second.getByRole('button', { name: 'Zoom in preview' }).click();
+  await second.getByRole('button', { name: 'Zoom in preview' }).click();
+  await expect(first.locator('output')).toHaveText('125%');
+  await page.evaluate(() => { (window as any).fixture.emptyWorkflows = true; });
+  await page.getByRole('button', { name: 'Refresh workflows', exact: true }).click();
+  await expect(first).toHaveCount(0);
+  await page.evaluate(() => { (window as any).fixture.emptyWorkflows = false; });
+  await page.getByRole('button', { name: 'Refresh workflows', exact: true }).click();
+  await first.getByRole('button', { name: 'Customer Onboarding', exact: true }).click();
+  await expect(first.locator('output')).toHaveText('100%');
+});
 test('onboarding connects, chooses placement, opens official editor and persists completion', async ({ page }) => {
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await frame(page); await expect(page.getByLabel('Instance URL')).toHaveValue('http://localhost:5678');
@@ -191,7 +308,20 @@ test('sidebar shows workflow state and recent execution status, filters and open
   await expect(page.getByRole('button', { name: 'Customer Onboarding', exact: true })).toBeVisible();
   const customer = page.getByRole('article', { name: 'Customer Onboarding', exact: true });
   const toggle = customer.getByRole('button', { name: 'Customer Onboarding', exact: true });
-  await expect(customer.getByText('Published', { exact: true })).toBeVisible();
+  const status = customer.getByRole('img', { name: 'Published', exact: true });
+  await expect(status).toBeVisible();
+  await expect(status).toHaveText('');
+  const tooltip = customer.getByRole('tooltip', { name: 'Published', exact: true });
+  await expect(tooltip).toBeHidden();
+  await expect(status).toHaveCSS('cursor', 'default');
+  await status.hover();
+  await expect(tooltip).toBeVisible();
+  for (const dark of [false, true]) { await page.evaluate(dark => (window as any).fixture.theme(dark), dark); await page.screenshot({ path: '.orca/shots/status-tooltip-' + (dark ? 'dark' : 'light') + '.png' }); }
+  await page.mouse.move(0, 0); await expect(tooltip).toBeHidden();
+  await status.focus(); await expect(tooltip).toBeVisible();
+  await status.press('Escape'); await expect(tooltip).toBeHidden();
+  await toggle.focus(); await status.focus(); await expect(tooltip).toBeVisible();
+  await toggle.focus(); await expect(tooltip).toBeHidden();
   await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   await expect(customer.getByText('Recent run: Failed', { exact: false })).toBeHidden();
   await customer.locator('.workflow-meta').click();

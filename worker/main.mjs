@@ -152,6 +152,74 @@ import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+
+// src/worker/workflow-preview.ts
+var MAX_NODES = 100;
+var MAX_EDGES = 200;
+function record(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+function normalizePreview(value) {
+  if (!Array.isArray(value.nodes) || !value.nodes.length) return;
+  const nodes = [], edges = [];
+  const names = /* @__PURE__ */ new Map();
+  let partial = value.nodes.length > MAX_NODES;
+  for (const item of value.nodes.slice(0, MAX_NODES)) {
+    if (!record(item) || typeof item.name !== "string" || !item.name || item.name.length > 250) {
+      partial = true;
+      continue;
+    }
+    const index = nodes.length;
+    const validPosition = Array.isArray(item.position) && item.position.length === 2 && item.position.every((n) => typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= 1e5);
+    const position = validPosition ? [Number(item.position[0]), Number(item.position[1])] : [index % 8 * 160, Math.floor(index / 8) * 112];
+    if (!validPosition) partial = true;
+    nodes.push({ name: item.name, type: typeof item.type === "string" ? item.type.slice(0, 128) : "Unknown node", position });
+    if (names.has(item.name)) {
+      names.set(item.name, void 0);
+      partial = true;
+    } else names.set(item.name, index);
+  }
+  if (!nodes.length) return;
+  if (!record(value.connections)) return { nodes, edges, partial: true };
+  let inspected = 0;
+  outer: for (const [name, channels] of Object.entries(value.connections)) {
+    const source = names.get(name);
+    if (source === void 0 || !record(channels)) {
+      partial = true;
+      continue;
+    }
+    const entries = Object.entries(channels);
+    if (entries.length > 16) partial = true;
+    for (const [channel, outputs] of entries.slice(0, 16)) {
+      if (!Array.isArray(outputs)) {
+        partial = true;
+        continue;
+      }
+      if (outputs.length > 32) partial = true;
+      for (const [output, targets] of outputs.slice(0, 32).entries()) {
+        if (!Array.isArray(targets)) {
+          partial = true;
+          continue;
+        }
+        for (const connection of targets) {
+          if (++inspected > MAX_EDGES) {
+            partial = true;
+            break outer;
+          }
+          const target = record(connection) && typeof connection.node === "string" ? names.get(connection.node) : void 0;
+          if (target === void 0) {
+            partial = true;
+            continue;
+          }
+          edges.push({ source, target, output, auxiliary: channel !== "main" });
+        }
+      }
+    }
+  }
+  return { nodes, edges, partial };
+}
+
+// src/worker/N8nClient.ts
 function publicAddress(ip) {
   if (isIP(ip) === 6) return /^[23][0-9a-f]{3}:/i.test(ip) && !/^2001:(?:db8|0):/i.test(ip);
   if (isIP(ip) !== 4) return false;
@@ -214,17 +282,17 @@ var apiTransport = async (connection, key, path, query, signal) => {
     request.end();
   });
 };
-function record(value) {
+function record2(value) {
   return !!value && typeof value === "object" && !Array.isArray(value);
 }
 function identifier(value) {
   return (typeof value === "string" || typeof value === "number") && /^[a-zA-Z0-9_-]{1,128}$/.test(String(value)) ? String(value) : void 0;
 }
 function normalizeInsights(value, startDate, endDate) {
-  if (!record(value)) throw new LauncherError("n8n returned an unexpected insights summary.", "unavailable");
+  if (!record2(value)) throw new LauncherError("n8n returned an unexpected insights summary.", "unavailable");
   function metric(name, unit) {
     const item = value[name];
-    if (!record(item) || item.unit !== unit || typeof item.value !== "number" || !Number.isFinite(item.value) || item.value < 0) throw new LauncherError("n8n returned an unexpected insights metric.", "unavailable");
+    if (!record2(item) || item.unit !== unit || typeof item.value !== "number" || !Number.isFinite(item.value) || item.value < 0) throw new LauncherError("n8n returned an unexpected insights metric.", "unavailable");
     return item.value;
   }
   const total = metric("total", "count"), failed = metric("failed", "count"), failureRate = metric("failureRate", "ratio");
@@ -232,22 +300,23 @@ function normalizeInsights(value, startDate, endDate) {
   return { total, failed, failureRate, timeSavedMinutes: metric("timeSaved", "minute"), averageRunTimeMs: metric("averageRunTime", "millisecond"), startDate, endDate };
 }
 function normalizeWorkflows(value) {
-  if (!record(value) || !Array.isArray(value.data)) throw new LauncherError("n8n returned an unexpected workflow list.", "unavailable");
+  if (!record2(value) || !Array.isArray(value.data)) throw new LauncherError("n8n returned an unexpected workflow list.", "unavailable");
   const data = value.data.slice(0, 25).flatMap((item) => {
-    if (!record(item)) return [];
+    if (!record2(item)) return [];
     const id = identifier(item.id);
     if (!id) return [];
     const state = item.isArchived === true ? "archived" : typeof item.activeVersionId === "string" && item.activeVersionId ? "published" : item.active === true ? "published" : item.active === false || "activeVersionId" in item ? "draft" : "unknown";
-    return [{ id, name: typeof item.name === "string" ? item.name.slice(0, 250) : "Untitled workflow", state, ...Array.isArray(item.nodes) ? { nodeCount: item.nodes.length } : {}, ...typeof item.updatedAt === "string" ? { updatedAt: item.updatedAt } : {} }];
+    const preview = normalizePreview(item);
+    return [{ id, name: typeof item.name === "string" ? item.name.slice(0, 250) : "Untitled workflow", state, ...Array.isArray(item.nodes) ? { nodeCount: item.nodes.length } : {}, ...preview ? { preview } : {}, ...typeof item.updatedAt === "string" ? { updatedAt: item.updatedAt } : {} }];
   });
   const nextCursor = typeof value.nextCursor === "string" && value.nextCursor.length <= 4096 ? value.nextCursor : void 0;
   return { data, ...nextCursor ? { nextCursor } : {} };
 }
 function addRecentRuns(page, value) {
-  if (!record(value) || !Array.isArray(value.data)) throw new LauncherError("Execution status is unavailable.", "unavailable");
+  if (!record2(value) || !Array.isArray(value.data)) throw new LauncherError("Execution status is unavailable.", "unavailable");
   const runs = /* @__PURE__ */ new Map();
   for (const item of value.data.slice(0, 100)) {
-    if (!record(item)) continue;
+    if (!record2(item)) continue;
     const workflowId = identifier(item.workflowId);
     const id = identifier(item.id);
     if (!workflowId || !id) continue;
