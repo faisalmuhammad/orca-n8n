@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- Fix workflow navigation: different workflows open in separate tabs or splits, while reopening the same workflow focuses its existing tab without navigating away from unsaved changes.
+- Match tabs by instance, base path, and workflow ID, preserving query parameters and execution views.
+- Always open New Workflow in a fresh editor and keep API settings separate from workflow tabs.
+- Add regression coverage for opening A, then B, then A again, instance isolation, and unsaved editors. Update the navigation documentation.
+
 ## 0.1.0
 
 Initial release of n8n for Orca.

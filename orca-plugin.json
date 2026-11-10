@@ -3,7 +3,7 @@
   "manifestVersion": 2,
   "id": "n8n",
   "name": "n8n for Orca",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Open your local or Cloud n8n instance in an Orca browser tab. Browse workflows, recent runs, and insights in the sidebar.",
   "license": "MIT",
   "author": { "name": "faisalmuhammad", "url": "https://github.com/faisalmuhammad" },

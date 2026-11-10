@@ -8,22 +8,22 @@ Open your local or Cloud n8n instance inside [Orca](https://onorca.dev). Browse 
 
 ![n8n in Orca, with a single-line pink-and-white headline and a tilted pink n8n tile](assets/cover.png)
 
-Version **0.1.0** is prepared locally for release. Publication steps are in [RELEASE.md](RELEASE.md).
+Version **0.1.1**. The release process is documented in [RELEASE.md](RELEASE.md).
 
 ## Install
 
 Requires **Orca desktop 1.4.248 or newer**, its compatible CLI, and a separately running local n8n or supported n8n Cloud instance.
 
-Once **v0.1.0** is published:
+Install a versioned release:
 
 1. Open **Settings → Plugins**.
 2. Choose **Add plugin → From a Git URL…** and enter:
 
    ```text
-   https://github.com/faisalmuhammad/orca-n8n#v0.1.0
+   https://github.com/faisalmuhammad/orca-n8n#v0.1.1
    ```
 
-   Keep `#v0.1.0` at the end to install the release tag.
+   Keep `#v0.1.1` at the end to install the release tag.
 3. Review and approve the **trusted worker**, **plugin-owned storage and secrets**, and **workspace discovery and navigation** access.
 4. Open **n8n** from the lightning icon in the sidebar and follow the setup guide.
 
@@ -56,11 +56,11 @@ Local addresses must use loopback hosts such as `localhost` or `127.0.0.1`. Clou
 
 ## Use
 
-Choose **Open** on a workflow to view it in n8n. Orca resolves the current workspace for every action and reuses an existing instance tab there, or creates a tab or split if needed. No workspace selection is saved. Switching workspaces automatically changes where the next workflow opens.
+Choose **Open** on a workflow to view it in n8n. Orca resolves the current workspace for every action. Reopening the same workflow focuses its existing tab; a different workflow opens in a separate tab or split. No workspace selection is saved. Switching workspaces automatically changes where the next workflow opens.
 
 Click a workflow card or its name to expand recent-run details. Cards start collapsed and keep their expansion state during filtering and refresh. **Enter** and **Space** also toggle the focused workflow name. The **Open** button works independently.
 
-Use **New Workflow** to open a new workflow in n8n. The same action is available as **New n8n workflow** in Orca’s command palette. The sidebar refreshes immediately after a successful launch when API access is configured; the new workflow appears after it is saved in n8n and the list refreshes.
+Use **New Workflow** to open a fresh workflow editor without replacing another workflow tab. The same action is available as **New n8n workflow** in Orca’s command palette. The sidebar refreshes immediately after a successful launch when API access is configured; the new workflow appears after it is saved in n8n and the list refreshes.
 
 The settings button controls the address, placement, API key, and automatic refresh. Setup can be revisited and exited without saving. **Delete connection** removes the saved connection and key after confirmation; the n8n instance and its workflows remain available.
 

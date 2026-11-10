@@ -22,12 +22,12 @@ test('release preparation reads only the manifest version and synchronizes insta
     write('package-lock.json', { version: '0.1.0', packages: { '': { version: '0.1.0' } } });
     writeFileSync(join(root, 'CHANGELOG.md'), changelog);
     writeFileSync(join(root, 'README.md'), 'Version **0.1.0**\nInstall repo#v0.1.0; Orca 1.4.248+');
-    writeFileSync(join(root, 'RELEASE.md'), 'Prepared version: **0.1.0**, future tag **v0.1.0**');
+    writeFileSync(join(root, 'RELEASE.md'), 'Release version: **0.1.0**, tag **v0.1.0**');
     execFileSync(process.execPath, [join(root, 'scripts/prepare-release.mjs')]);
     assert.equal(readReleaseInfo(root).version, '0.2.0');
     const readme = readFileSync(join(root, 'README.md'), 'utf8');
     assert.ok(readme.includes('Version **0.2.0**') && readme.includes('#v0.2.0') && readme.includes('Orca 1.4.248+'));
-    assert.ok(readFileSync(join(root, 'RELEASE.md'), 'utf8').includes('Prepared version: **0.2.0**'));
+    assert.ok(readFileSync(join(root, 'RELEASE.md'), 'utf8').includes('Release version: **0.2.0**'));
     write('orca-plugin.json', { name: 'n8n for Orca', version: '0.3.0' });
     assert.throws(() => execFileSync(process.execPath, [join(root, 'scripts/prepare-release.mjs')], { stdio: 'pipe' }));
     assert.equal(JSON.parse(readFileSync(join(root, 'package.json'))).version, '0.2.0');

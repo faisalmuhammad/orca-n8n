@@ -16,7 +16,7 @@ for (const file of ['README.md', 'RELEASE.md']) {
   const path = join(ROOT, file);
   let source = readFileSync(path, 'utf8').replace(/\bv\d+\.\d+\.\d+\b/g, info.tag);
   if (file === 'README.md') source = source.replace(/Version \*\*\d+\.\d+\.\d+\*\*/, 'Version **' + info.version + '**');
-  else source = source.replace(/Prepared version: \*\*\d+\.\d+\.\d+\*\*/, 'Prepared version: **' + info.version + '**');
+  else source = source.replace(/((?:Prepared|Release) version: \*\*)\d+\.\d+\.\d+(\*\*)/, (_match, prefix, suffix) => prefix + info.version + suffix);
   writeFileSync(path, source);
 }
 readReleaseInfo();

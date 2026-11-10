@@ -121,17 +121,84 @@ test('palette refuses ambiguous destinations and offline instances before openin
     finally { await worker.deactivate(); }
   }
 });
-test('browser launcher reuses and focuses an n8n editor, preserving the same workflow and guarding navigation', async () => {
+test('browser launcher focuses the same workflow without navigating or replacing its editor state', async () => {
   const existing = { browserPageId: 'existing-page', url: DEFAULT_URL + 'workflow/a?view=editor', active: true };
-  for (const target of [DEFAULT_URL, DEFAULT_URL + 'workflow/a', DEFAULT_URL + 'workflow/b']) {
+  for (const target of [DEFAULT_URL, DEFAULT_URL + 'workflow/a']) {
     const routed: string[][] = [];
     const reuse: Cli = async args => { routed.push(args); return args[0] === 'worktree' ? available : { tabs: [existing] }; };
     assert.equal(await openBrowser(reuse, target, selector, 'right', signal), 'existing-page');
     assert.ok(!routed.some(args => args[1] === 'create'));
-    assert.equal(routed.some(args => args[0] === 'goto'), target.endsWith('workflow/b'));
-    if (target.endsWith('workflow/b')) assert.deepEqual(routed.find(args => args[0] === 'goto'), ['goto', '--page', 'existing-page', '--url', target, '--expect-url', existing.url, '--environment', 'local', '--worktree', selector, '--json']);
+    assert.ok(!routed.some(args => args[0] === 'goto'));
     assert.ok(routed.at(-1)?.includes('--focus'));
   }
+});
+test('different workflows open separate tabs instead of navigating the active n8n editor', async () => {
+  const routed: string[][] = [];
+  const different: Cli = async args => {
+    routed.push(args);
+    return args[0] === 'worktree' ? available : args[1] === 'list' ? { tabs: [{ browserPageId: 'workflow-a', url: DEFAULT_URL + 'workflow/a', active: true }] } : { browserPageId: 'workflow-b' };
+  };
+  assert.equal(await openBrowser(different, DEFAULT_URL + 'workflow/b', selector, 'tab', signal), 'workflow-b');
+  assert.deepEqual(routed.find(args => args[1] === 'create'), ['tab', 'create', '--url', DEFAULT_URL + 'workflow/b', '--environment', 'local', '--worktree', selector, '--json']);
+  assert.ok(!routed.some(args => args[0] === 'goto'));
+  assert.deepEqual(routed.at(-1), ['tab', 'switch', '--page', 'workflow-b', '--focus', '--environment', 'local', '--worktree', selector, '--json']);
+});
+test('workflow matching handles query strings and execution views and isolates instance base paths and popups', async () => {
+  const base = DEFAULT_URL + 'n8n/';
+  for (const suffix of ['workflow/a?view=editor#node', 'workflow/a/executions/123']) {
+    const routed: string[][] = [];
+    const matching: Cli = async args => {
+      routed.push(args);
+      return args[0] === 'worktree' ? available : { tabs: [
+        { browserPageId: 'active-b', url: base + 'workflow/b', active: true },
+        { browserPageId: 'other-base', url: DEFAULT_URL + 'other/workflow/a', active: true },
+        { browserPageId: 'other-instance', url: 'https://team.app.n8n.cloud/n8n/workflow/a', active: true },
+        { browserPageId: 'popup-a', url: base + 'workflow/a', active: true },
+        { browserPageId: 'matching-a', url: base + suffix }
+      ] };
+    };
+    assert.equal(await openBrowser(matching, base + 'workflow/a', selector, 'down', signal, base), 'matching-a');
+    assert.ok(!routed.some(args => args[0] === 'goto' || args[1] === 'create'));
+    assert.equal(routed.at(-1)?.[3], 'matching-a');
+  }
+});
+test('New Workflow and API settings never replace a saved or unsaved workflow editor', async () => {
+  for (const path of ['workflow/new', 'settings/api']) {
+    const routed: string[][] = [];
+    const launch: Cli = async args => {
+      routed.push(args);
+      return args[0] === 'worktree' ? available : args[1] === 'list' ? { tabs: [
+        { browserPageId: 'saved', url: DEFAULT_URL + 'workflow/a', active: true },
+        { browserPageId: 'unsaved', url: DEFAULT_URL + 'workflow/new' }
+      ] } : { browserPageId: 'fresh' };
+    };
+    assert.equal(await openBrowser(launch, DEFAULT_URL + path, selector, 'right', signal), 'fresh');
+    assert.ok(routed.some(args => args[1] === 'create' && args.includes('--split')));
+    assert.ok(!routed.some(args => args[0] === 'goto'));
+  }
+});
+test('sidebar opens workflow A and B independently and focuses A on reopening without a duplicate', async () => {
+  const tabs: { browserPageId: string; url: string }[] = [];
+  const routed: string[][] = [];
+  const browser: Cli = async args => {
+    routed.push(args);
+    if (args[0] === 'worktree') return available;
+    if (args[1] === 'list') return { tabs };
+    if (args[1] === 'create') { const page = { browserPageId: 'page-' + (tabs.length + 1), url: args[args.indexOf('--url') + 1] }; tabs.push(page); return page; }
+    return {};
+  };
+  const host = mockHost({ capabilities, storage: { launcher: { baseUrl: DEFAULT_URL, connectionKind: 'local', placement: 'tab', onboardingCompleted: true } } });
+  const worker = await mountWorker({ default: api => activateWithServices(api, browser, async () => undefined) }, { host });
+  try {
+    const first = await worker.request('n8n.open', { workflowId: 'a', placement: 'tab' });
+    const second = await worker.request('n8n.open', { workflowId: 'b', placement: 'tab' });
+    const reopened = await worker.request('n8n.open', { workflowId: 'a', placement: 'tab' });
+    assert.notEqual(first.browserPageId, second.browserPageId);
+    assert.equal(reopened.browserPageId, first.browserPageId);
+    assert.equal(tabs.length, 2);
+    assert.equal(routed.filter(args => args[1] === 'create').length, 2);
+    assert.ok(!routed.some(args => args[0] === 'goto'));
+  } finally { await worker.deactivate(); }
 });
 test('setup previews preserve saved connection, placement, and API key until explicitly saved', async () => {
   const host = mockHost({ capabilities, storage: { launcher: { baseUrl: DEFAULT_URL, connectionKind: 'local', workspace: selector, placement: 'tab', onboardingCompleted: true, lastOpenedAt: '2026-11-10T10:00:00Z' } }, secrets: { 'api-key': JSON.stringify({ baseUrl: DEFAULT_URL, connectionKind: 'local', apiKey: 'private-key' }) } });

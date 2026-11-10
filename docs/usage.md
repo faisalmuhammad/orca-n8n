@@ -22,7 +22,7 @@ To remove a saved local or Cloud connection, open Connection settings → Delete
 
 Workflow lists refresh automatically every 30 seconds by default. Connection settings offers Off, 15/30 seconds, or 1/2/5 minutes. Refresh pauses while the panel is hidden, settings are open, or an input has focus. Manual refresh is available beside the Workflows heading. Refresh reloads the first workflow page; use Load more again for additional pages.
 
-Open reuses and visibly focuses an existing browser tab for the configured instance in the current workspace. A new tab or split is created only when no matching tab exists. Opening an already visible workflow preserves its current editor state; switching to a different workflow uses Orca’s guarded browser navigation.
+Open matches tabs by the configured instance, base path, and workflow ID in the current workspace. Reopening a workflow focuses its matching tab without navigating it, preserving unsaved changes and the current view. Different workflows open in separate tabs or splits. New Workflow always starts a fresh editor, while API settings reuse only their own settings tab. Open n8n can focus an existing instance tab without replacing its current view.
 
 ## Architecture and data
 

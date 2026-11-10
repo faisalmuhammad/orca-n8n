@@ -27,19 +27,24 @@ export async function openBrowser(cli: Cli, url: string, workspace: string, plac
   if (!(await workspaces(cli, signal)).some(item => item.selector === workspace)) throw new LauncherError('That workspace is no longer available. Refresh and choose a local workspace.', 'invalid_params');
   if (!['tab', 'right', 'down'].includes(placement)) throw new LauncherError('Choose a tab or split placement.', 'invalid_params');
   const target = new URL(url); const base = new URL(baseUrl);
+  const workflowPrefix = new URL('workflow/', base).pathname;
+  const workflowId = (value: URL) => value.pathname.startsWith(workflowPrefix) ? decodeURIComponent(value.pathname.slice(workflowPrefix.length).split('/')[0]) : undefined;
+  const targetWorkflowId = workflowId(target);
   const listed = await cli(['tab', 'list', '--environment', 'local', '--worktree', workspace, '--json'], signal);
   if (!isRecord(listed) || !Array.isArray(listed.tabs)) throw new LauncherError('Orca could not check existing n8n tabs. Refresh and try again.', 'unavailable');
   const candidates = listed.tabs.flatMap(item => {
     if (!isRecord(item) || typeof item.url !== 'string' || typeof item.browserPageId !== 'string' || item.browserPageId.startsWith('popup-')) return [];
     try { const current = new URL(item.url); if (current.origin !== base.origin || !current.pathname.startsWith(base.pathname)) return [];
-      return [{ page: item.browserPageId, url: item.url, path: current.pathname, rank: current.pathname === target.pathname ? 0 : item.active === true ? 1 : current.pathname.startsWith(new URL('workflow/', base).pathname) ? 2 : 3 }];
+      // Saved workflows reuse only their own tabs. Every New Workflow action gets a fresh editor.
+      if (targetWorkflowId === 'new' || targetWorkflowId && workflowId(current) !== targetWorkflowId) return [];
+      if (!targetWorkflowId && target.href !== base.href && current.pathname !== target.pathname) return [];
+      return [{ page: item.browserPageId, rank: current.pathname === target.pathname ? 0 : item.active === true ? 1 : current.pathname.startsWith(workflowPrefix) ? 2 : 3 }];
     } catch { return []; }
   }).sort((a, b) => a.rank - b.rank);
   let browserPageId: string;
   if (candidates.length) {
-    const existing = candidates[0]; browserPageId = existing.page;
-    // Opening n8n itself preserves the current editor and its unsaved changes.
-    if (target.href !== base.href && existing.path !== target.pathname) await cli(['goto', '--page', browserPageId, '--url', url, '--expect-url', existing.url, '--environment', 'local', '--worktree', workspace, '--json'], signal);
+    // Focus without navigation to preserve unsaved changes and the current workflow view.
+    browserPageId = candidates[0].page;
   } else {
     const args = ['tab', 'create', '--url', url, '--environment', 'local', '--worktree', workspace];
     if (placement !== 'tab') args.push('--split', placement);

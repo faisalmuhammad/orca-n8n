@@ -110,6 +110,9 @@ async function openBrowser(cli, url, workspace, placement, signal, baseUrl = new
   if (!["tab", "right", "down"].includes(placement)) throw new LauncherError("Choose a tab or split placement.", "invalid_params");
   const target = new URL(url);
   const base = new URL(baseUrl);
+  const workflowPrefix = new URL("workflow/", base).pathname;
+  const workflowId = (value) => value.pathname.startsWith(workflowPrefix) ? decodeURIComponent(value.pathname.slice(workflowPrefix.length).split("/")[0]) : void 0;
+  const targetWorkflowId = workflowId(target);
   const listed = await cli(["tab", "list", "--environment", "local", "--worktree", workspace, "--json"], signal);
   if (!isRecord(listed) || !Array.isArray(listed.tabs)) throw new LauncherError("Orca could not check existing n8n tabs. Refresh and try again.", "unavailable");
   const candidates = listed.tabs.flatMap((item) => {
@@ -117,16 +120,16 @@ async function openBrowser(cli, url, workspace, placement, signal, baseUrl = new
     try {
       const current = new URL(item.url);
       if (current.origin !== base.origin || !current.pathname.startsWith(base.pathname)) return [];
-      return [{ page: item.browserPageId, url: item.url, path: current.pathname, rank: current.pathname === target.pathname ? 0 : item.active === true ? 1 : current.pathname.startsWith(new URL("workflow/", base).pathname) ? 2 : 3 }];
+      if (targetWorkflowId === "new" || targetWorkflowId && workflowId(current) !== targetWorkflowId) return [];
+      if (!targetWorkflowId && target.href !== base.href && current.pathname !== target.pathname) return [];
+      return [{ page: item.browserPageId, rank: current.pathname === target.pathname ? 0 : item.active === true ? 1 : current.pathname.startsWith(workflowPrefix) ? 2 : 3 }];
     } catch {
       return [];
     }
   }).sort((a, b) => a.rank - b.rank);
   let browserPageId;
   if (candidates.length) {
-    const existing = candidates[0];
-    browserPageId = existing.page;
-    if (target.href !== base.href && existing.path !== target.pathname) await cli(["goto", "--page", browserPageId, "--url", url, "--expect-url", existing.url, "--environment", "local", "--worktree", workspace, "--json"], signal);
+    browserPageId = candidates[0].page;
   } else {
     const args = ["tab", "create", "--url", url, "--environment", "local", "--worktree", workspace];
     if (placement !== "tab") args.push("--split", placement);
