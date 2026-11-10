@@ -1,0 +1,5 @@
+{
+  "extends": "./.orca/types/tsconfig.json",
+  "compilerOptions": { "resolveJsonModule": true, "lib": ["ES2022", "DOM", "DOM.Iterable"], "types": ["orca", "orca-host", "orca-frame", "orca-worker", "orca-services", "orca-testing", "node"], "typeRoots": ["./.orca/types", "./node_modules/@types"] },
+  "include": ["src", "tests"]
+}

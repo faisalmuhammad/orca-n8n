@@ -1,0 +1,47 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stablyai/orca/main/docs/schemas/plugins/orca-plugin.v2.schema.json",
+  "manifestVersion": 2,
+  "id": "n8n",
+  "name": "n8n for Orca",
+  "version": "0.1.0",
+  "description": "Open your local or Cloud n8n instance in an Orca browser tab. Browse workflows, recent runs, and insights in the sidebar.",
+  "license": "MIT",
+  "author": { "name": "faisalmuhammad", "url": "https://github.com/faisalmuhammad" },
+  "repository": "https://github.com/faisalmuhammad/orca-n8n",
+  "icon": "assets/icon.png",
+  "cover": { "path": "assets/cover.png", "alt": "n8n in Orca on one line, with n8n in signature pink, a tilted n8n-symbol tile, and Local / Cloud connection options." },
+  "screenshots": [
+    { "path": "assets/screenshot-dark.png", "alt": "Dark sidebar with sample workflows, publication state, separate Open actions, and expanded recent-run details.", "caption": "Browse workflows and expand a card for recent runs. Sample data.", "theme": "dark" },
+    { "path": "assets/screenshot-light.png", "alt": "Light sidebar with fading dotted workflow cards, instance controls, and a compact version footer.", "caption": "A clear workflow companion in light and dark themes. Sample data.", "theme": "light" },
+    { "path": "assets/screenshot-insights-dark.png", "alt": "Dark sidebar with a compact expanded seven-day insights grid above the workflow list.", "caption": "Production runs, failures, failure rate, time saved, and average run time. Sample metrics.", "theme": "dark" },
+    { "path": "assets/screenshot-insights-light.png", "alt": "Light sidebar with five insights metrics in a compact grid and a refresh icon in the header.", "caption": "An expandable overview that keeps workflows in view. Sample metrics.", "theme": "light" }
+  ],
+  "engines": {
+    "orca": ">=1.4.248"
+  },
+  "execution": "trusted-worker",
+  "pluginApi": 1,
+  "main": "worker/main.mjs",
+  "contributes": {
+    "panels": [
+      {
+        "id": "n8n",
+        "title": "n8n",
+        "icon": "zap",
+        "entry": "panel/index.html",
+        "ui": "html"
+      }
+    ],
+    "commands": [
+      { "id": "n8n.new-workflow", "title": "New n8n workflow", "when": "workspace" }
+    ]
+  },
+  "capabilities": [
+    {
+      "kind": "storage:own"
+    },
+    { "kind": "workspace:read" },
+    { "kind": "workspace:write" },
+    { "kind": "secrets:own" }
+  ]
+}

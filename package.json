@@ -1,0 +1,24 @@
+{
+  "name": "orca-n8n",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/orca.mjs test .",
+    "test:browser": "playwright test",
+    "validate": "node scripts/orca.mjs validate dist/plugin",
+    "check": "npm run typecheck && npm run build && npm test && npm run test:browser && npm run validate && node scripts/orca.mjs check dist/plugin && npm run release:check",
+    "release:prepare": "node scripts/prepare-release.mjs",
+    "test:release": "node --test tests/release/*.test.mjs",
+    "release:check": "node scripts/ci-release.mjs && node scripts/check-release.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "22.20.5",
+    "esbuild": "0.25.12",
+    "sharp": "0.35.5",
+    "typescript": "5.9.3"
+  }
+}

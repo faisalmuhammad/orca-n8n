@@ -1,0 +1,25 @@
+/* n8n accents from guidelines.n8n.design/downloads/n8ndesign.md (v5), with Orca theme surfaces.
+   Spacing and control typography retain the approved Orca workspace scale.
+   Brand values and host theme aliases are not approved system-wide design tokens. */
+:root {
+  color-scheme: light;
+  --color-foreground: var(--orca-foreground, #191919);
+  --color-primary: #FF91AC;
+  --color-secondary: var(--orca-muted-foreground, #676767);
+  --color-surface: var(--orca-background, #FAFAFA);
+  --n8n-ink: #191919;
+  --n8n-secondary: color-mix(in srgb, var(--color-foreground) 5%, var(--color-surface));
+  --n8n-stroke: #E0E0E0;
+  --n8n-grid: color-mix(in srgb, var(--color-foreground) 16%, var(--color-surface));
+  --n8n-focus: #87003C;
+  --n8n-accent-hover: #FFD0D9;
+}
+.hero-title { font-size: 28px; line-height: 32px; }
+:root[data-mode=dark] {
+  color-scheme: dark;
+  --color-foreground: var(--orca-foreground, #FAFAFA);
+  --color-surface: var(--orca-background, #191919);
+  --color-secondary: var(--orca-muted-foreground, #BFBFBF);
+  --n8n-stroke: #676767;
+  --n8n-focus: #FF91AC;
+}
